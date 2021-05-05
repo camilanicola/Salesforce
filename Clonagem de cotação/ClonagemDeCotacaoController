@@ -1,0 +1,125 @@
+public class clonagemDeCotacaoController {
+    
+    public ApexPages.StandardController controller {get;set;}
+    public Quote oldQuote {get; set;}
+    public Quote cloneqt {get;set;}
+    public List<QuoteLineItem> quoteLineItemToInsert = new List<QuoteLineItem>();
+    
+    public clonagemDeCotacaoController(ApexPages.StandardController ctrl){
+        controller=ctrl;
+    }
+    
+    public PageReference cloneQuote(){  
+        cloneqt=new Quote();
+       
+        oldQuote =[SELECT AccountId,Transportadora__c,Name,ExpirationDate,Tipo_de_via_de_transporte__c,Tipo_de_LME__c,
+                   Description,Cliente_Entrega__c,recordType.DeveloperName,recordType.Name,OpportunityId,Validade_do_Contrato__c,
+                   ContactId,ContractId,Via_de_transporte__c,	LME_Fixo__c,Pendencia_Financeira__c,Percentual_da_Comissao__c,
+                   Agente_Comissao__c,Base_de_Calculo_da_Comissao__c,Condicao_de_Pagamento__c,Tipo_de_Dolar__c,Dolar__c,
+                   Encargo_Financeiro__c,Incoterm__c,Tipo_de_frete__c,Transportadora_de_Redespacho__c,Pricebook2Id
+                   FROM Quote WHERE id=: controller.getRecord().id];
+       //Valor_do_dolar__c, voltar com ele pro select
+        String rt=oldQuote.recordType.DeveloperName;
+        String nomeCotacao = oldQuote.Name  + Date.TODAY();
+        
+        System.debug('oldQuote.recordType.Name '+oldQuote.recordType.Name);
+        Id recordTypeId = Schema.SObjectType.Quote.getRecordTypeInfosByDeveloperName().get(rt).getRecordTypeId();
+        System.debug('recordTypeId '+ recordTypeId);
+        
+        cloneqt.Clone__c=true;
+        cloneqt.Pricebook2Id=oldQuote.Pricebook2Id;
+        cloneqt.Name=nomeQt(oldQuote.Name); //metodo depois desse
+        cloneqt.ExpirationDate=oldQuote.ExpirationDate;
+        cloneqt.Tipo_de_via_de_transporte__c=oldQuote.Tipo_de_via_de_transporte__c;
+        cloneqt.Description=oldQuote.Description;
+        cloneqt.Cliente_Entrega__c	=oldQuote.Cliente_Entrega__c;
+        cloneqt.recordTypeId=recordTypeId;
+        cloneqt.OpportunityId=oldQuote.OpportunityId;
+        cloneqt.Validade_do_Contrato__c=oldQuote.Validade_do_Contrato__c;
+        cloneqt.ContactId=oldQuote.ContactId;
+        cloneqt.LME_Fixo__c=oldQuote.LME_Fixo__c;
+        cloneqt.Tipo_de_LME__c=oldQuote.Tipo_de_LME__c;
+        // cloneqt.Pendencia_Financeira__c=oldQuote.Pendencia_Financeira__c;
+        
+        //Seção Outras condições
+        cloneqt.Tipo_de_Dolar__c = oldQuote.Tipo_de_Dolar__c;
+        cloneqt.Condicao_de_Pagamento__c = oldQuote.Condicao_de_pagamento__c;
+        cloneqt.Transportadora__c = oldQuote.Transportadora__c;
+        cloneqt.Encargo_Financeiro__c = oldQuote.Encargo_Financeiro__c;
+        //cloneqt.Dolar__c = oldQuote.Dolar__c;
+        
+        //Seção Comissões 
+        cloneqt.Percentual_da_Comissao__c=oldQuote.Percentual_da_Comissao__c;
+        cloneqt.Agente_Comissao__c = oldQuote.Agente_Comissao__c;
+        cloneqt.Base_de_Calculo_da_Comissao__c = oldQuote.Base_de_Calculo_da_Comissao__c;
+        
+        if(oldQuote.RecordType.Name=='Cotação Interna'){
+            cloneqt.Tipo_de_frete__c=oldQuote.Tipo_de_frete__c;
+            cloneqt.Transportadora_de_Redespacho__c=oldQuote.Transportadora_de_Redespacho__c;  		
+        }
+        else{
+            cloneqt.Incoterm__c=oldQuote.Incoterm__c;
+        }
+        insert cloneqt;
+        
+        //clonagem das linhas da cotação
+        system.debug('oi');
+		
+        for(QuoteLineItem qli :[SELECT Product2Id,Tipo_de_Operacao__c,
+                                Quantity,Tipo_de_LME__c,LME__c,Preco_Unitario__c,UnitPrice,Premio__c,
+                                Percentual_da_LME__c,LME_Fixo__c,Imposto__c,Especificacao__c,
+                                Cliente_Especificacao__c,IPI__c,QuoteId,PricebookEntryId,
+                                Valor_Total__c  
+                                //Fator_de_Imposto__c,
+                                FROM QuoteLineItem WHERE QuoteId =: controller.getRecord().id]){
+                                    QuoteLineItem newQli = new QuoteLineItem();
+                                    
+                                    newqli.QuoteId=cloneqt.Id;
+                                    newqli.PricebookEntryId=qli.PricebookEntryId;
+                                    newqli.Product2Id=qli.Product2Id;
+                                    newqli.Tipo_de_Operacao__c=qli.Tipo_de_Operacao__c;
+                                    newqli.Quantity=qli.Quantity;
+                                    newqli.Tipo_de_LME__c=qli.Tipo_de_LME__c;
+                                    newqli.UnitPrice=qli.UnitPrice;
+                                    newqli.Premio__c=qli.Premio__c;
+                                    newqli.Percentual_da_LME__c=qli.Percentual_da_LME__c;
+                                    newqli.LME_Fixo__c=qli.LME_Fixo__c;
+                                    newqli.Imposto__c=qli.Imposto__c;
+                                    newqli.Quantity=qli.Quantity;
+                                    newqli.Especificacao__c=qli.Especificacao__c;
+                                    newqli.Cliente_Especificacao__c=qli.Cliente_Especificacao__c;
+                                    
+                                    system.debug('Product2Id' + qli.Product2Id);
+                                    quoteLineItemToInsert.add(newqli);
+                                }
+        system.debug('oi 2');
+        system.debug(quoteLineItemToInsert);
+        insert quoteLineItemToInsert;
+        
+        PageReference pg = new PageReference('/'+cloneqt.Id);
+        pg.setRedirect(true);
+        return pg; 
+        
+    }   
+    
+    private String nomeQt(String nomeCotacao){
+        String novoNome;
+        String dataComHora = string.valueOfGmt(date.TODAY());
+        
+        String []tiraHora = dataComHora.split(' ');//separa as horas da função today
+        String dataSemHora= tiraHora[0];
+        
+        String [] data = dataSemHora.split('-'); //separação da data em vetor de string
+        String ano = data[0];
+        String mes = data[1];
+        String dia = data[2];
+        
+        
+        String[] nome=nomeCotacao.split(' ');//pega somente o nome da conta que fica no nome da cotação antiga
+        String nomeConta=nome[0];
+        
+        novoNome=nomeConta + ' '+dia+mes+ano;
+        return novoNome;
+    }
+    
+}
