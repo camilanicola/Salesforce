@@ -1,0 +1,49 @@
+@isTest
+public class clonagemDeCotacao_Tester {
+   @TestSetup
+    public static void testData(){
+       Profile admin = new Profile();
+       admin=TestDataFactory.perfilNovo();
+        
+       User u = new User();
+       u=TestDataFactory.usuarioTeste(admin.id);
+       
+       System.runAs(u){
+       Condicao_de_Pagamento__c cpag=TestDataFactory.condPagamentoTeste();
+          insert cpag;
+       Via_de_Transporte__c vdt=TestDataFactory.viaTeste();
+           
+       Individual ind=TestDataFactory.individualTeste();
+           insert ind;
+       Account acct=TestDataFactory.contaTeste(u.id,cpag.Id,ind.id);
+           insert acct;
+       Contact contato=TestDataFactory.contatoPrincipal(acct.id);
+           insert contato;
+       Opportunity opp=TestDataFactory.oppTeste(acct.id);
+           insert opp;
+       Product2 prod=TestDataFactory.prodTeste();
+           insert prod;
+           
+       Pricebook2 sprb=TestDataFactory.prbTeste();
+           update sprb;	           
+       PricebookEntry pbe=TestDataFactory.pbeTeste(sprb.id,prod.id);
+           insert pbe;
+       Quote qt =TestDataFactory.qtTeste(opp.id,acct.id,sprb.id); 
+      	   insert qt;    
+       QuoteLineItem qli=TestDataFactory.qliTeste(qt.id,prod.id,pbe.id);
+       	  insert qli;
+       }
+    }
+	@isTest     
+    public static void cloneQuote(){     
+        Quote qt=[SELECT Id, AccountId FROM Quote LIMIT 1];
+        ApexPages.currentPage().getParameters().put('id',qt.id);
+        ApexPages.StandardController stdQt = new ApexPages.StandardController(qt);
+        clonagemDeCotacaoController ctrl = new clonagemDeCotacaoController(stdQt);
+        
+        test.startTest();
+        	PageReference pg =ctrl.cloneQuote();
+        test.stopTest();
+        System.assertNotEquals(null, pg);
+    }
+}
