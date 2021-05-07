@@ -1,0 +1,28 @@
+@isTest
+public class consultaCNPJTest {
+    @testSetup
+    public static void setupTest(){
+       Profile p = DataFactory.perfilNovo();
+       
+       User u =DataFactory.usuarioTeste(p.id);
+       insert u;
+        
+       System.runAs(u){
+        Lead lead= DataFactory.leadTeste();
+        insert lead;
+       }
+    }
+    @isTest
+    public static void testInegracaoReceita(){
+        Lead lead=[SELECT Id FROM lead];
+        ApexPages.currentPage().getParameters().put('id',lead.id);
+        ApexPages.StandardController stdLd = new ApexPages.StandardController(lead);   
+        consultaCNPJController consulta = new consultaCNPJController(stdLd);
+        Test.setMock(HTTPCalloutMock.class, new consultaCNPJMock());
+        test.startTest();
+        	PageReference pg =consulta.consultaGet();
+        test.stopTest();
+        System.assertNotEquals(null, pg);
+    }
+
+}
