@@ -1,0 +1,69 @@
+public class consultaCNPJController {
+    public ApexPages.StandardController controller {get;set;}
+    public Lead consulta {get;set;}
+    
+    public consultaCNPJController(ApexPages.StandardController ctrl){
+        controller=ctrl;
+    }
+    
+    public class JSON2Apex{
+        public String nome;
+        public String uf;
+        public String telefone;
+        public String email;
+        public String bairro;
+        public String logradouro;
+        public String numero;
+        public String cep;
+        public String municipio;
+        public String fantasia;
+    }
+    
+    public PageReference consultaGet(){
+        try{
+       consulta=[SELECT CNPJ_ou_CPF__c FROM Lead WHERE id=: controller.getRecord().id];
+            
+            String cnpjArrumado = consulta.CNPJ_ou_CPF__c.replaceAll('\\D', '');
+            System.debug('cnpj original:'+consulta.CNPJ_ou_CPF__c);
+            System.debug('cnpj formatado:'+cnpjArrumado);
+            if(consulta.CNPJ_ou_CPF__c!=null && cnpjArrumado.length()==14){
+        	
+            HTTPRequest request = new HTTPRequest();
+            request.setEndpoint('https://www.receitaws.com.br/v1/cnpj/'+cnpjArrumado);
+            request.setMethod('GET');
+            Http httpObj = new Http();
+            HTTPResponse resp = httpObj.send(request);
+            if(resp.getStatusCode() == 200){
+                String str = resp.getBody();
+                System.debug(str);
+            JSON2Apex JSONDetails=(JSON2Apex) System.JSON.deserialize(str, JSON2Apex.class);
+			consulta.Company=JSONDetails.nome;
+            consulta.Email=JSONDetails.email;
+            consulta.Phone=JSONDetails.telefone;
+            consulta.Nome_fantasia__c=JSONDetails.fantasia;
+            consulta.Razao_social__c=JSONDetails.nome;
+            consulta.State=JSONDetails.uf;
+            consulta.Street=JSONDetails.logradouro;
+            consulta.PostalCode=JSONDetails.cep;
+            consulta.City=JSONDetails.municipio;
+            
+                
+            update consulta;
+            
+            }else{
+                System.debug('O serviço não retornou com sucesso.');
+            	}
+            }
+        }
+        catch(Exception e){
+           system.debug('Erro na chamada '+e.getStackTraceString());
+        }
+          
+		
+        
+      PageReference pg = new PageReference('/'+consulta.Id);
+      pg.setRedirect(false);
+      return pg; 
+    }
+   
+  }
