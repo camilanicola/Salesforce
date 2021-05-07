@@ -2,8 +2,9 @@
 
 `public class TestDataFactory {//criação de dados para teste (só obj nativos e campos nativos obrigatórios)`
 
-`public static Profile perfilNovo(){// criação de perfil de usuario
+`public static Profile perfilNovo(){
         Profile p = new Profile();
+		p.Name='System Administrator';
         Id pId = [select id from Profile LIMIT 1].Id;
         system.debug('Id '+ pId);
         p.id=pId;
@@ -32,6 +33,13 @@
         
         return u; `
         }
+        public static Lead leadTeste(){
+        Lead lead = new Lead(CNPJ_ou_CPF__c='47960950000121',
+                             LastName='Nicola',
+                            Company='Magalu');
+        return lead;
+        
+    }
         public static Account contaTeste(id usuario){
             
             Account conta = new Account();
